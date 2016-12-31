@@ -202,3 +202,5 @@ class Krawczyk():
         y = X.midpoint
         Y =  self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
         Z = X - y
+    else:
+      return X
