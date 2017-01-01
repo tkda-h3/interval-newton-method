@@ -231,21 +231,24 @@ class Krawczyk():
     self.f = f # fmat object
     self.f_grad = f_grad # fmat object
     self.X = X # ivmat object
-    self.y = self.X.midpoint.to_scalar()
-    self.Y = self.f_grad.apply_args(self.X).midpoint.to_scalar().get_pinv()
-    self.Z = self.X-self.y
+    # self.y = self.X.midpoint.to_scalar()
+    # self.Y = self.f_grad.apply_args(self.X).midpoint.to_scalar().get_pinv()
+    # self.Z = self.X-self.y
     self.dim = len(self.f)
     self._NO_SOLUTIONS_FLAG = '_NO_SOLUTIONS_FLAG'
     self._EXACT_1_SOLUTION_FLAG = '_EXACT_1_SOLUTION_FLAG'
     self._MULTI_SOLUTIONS_FLAG = '_MULTI_SOLUTIONS_FLAG' # greater than 1 solution
     self._UNCLEAR_SOLUTION_FLAG = '_UNCLEAR_SOLUTION_FLAG'
 
-  def run(self, iter_num=10, trace=False):
+  def refine(self, X_0, iter_num=10, trace=False):
+    """
+    X_0: initial box including unique solution.
+    """
     # initialize
-    X = self.X
-    y = X.midpoint
-    Y = self.Y
-    Z = self.Z
+    X = X_0
+    y = X.midpoint.to_scalar()
+    Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
+    Z = X - y
     if trace: pprint(X)
     for i in range(iter_num):
         left = y - ivmat.dot(Y, self.f.apply_args(y))
@@ -257,7 +260,7 @@ class Krawczyk():
           pprint(X)        
         #update
         y = X.midpoint
-        Y =  self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
+        Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
         Z = X - y
     else:
       return X
@@ -287,7 +290,7 @@ class Krawczyk():
     else:
       return self._UNCLEAR_SOLUTION_FLAG
       
-  def is_make_sure_not_solution_exist(self,X, trace=False):
+  def is_make_sure_not_solution_exist(self, X, trace=False):
     """
     解の非存在を保証する判定法
     """    
@@ -351,7 +354,7 @@ class Krawczyk():
           S.append(X_1)
           S.append(X_2)
           continue # to step2
-    return T
     # Tは解が一意に存在するboxのlist
-    #さらにKrawcyzkで洗練させる必要あり
+    return map(lambda x: self.refine(x), T)
+
 
