@@ -202,10 +202,13 @@ class ivmat(list):
 
   @classmethod 
   def is_empty(cls, x):
+    """
+    1成分でもinterval()ならばTrue
+    """
     for iv in cls._flatten(x):
-      if not iv == interval():
-        return False
-    return True
+      if iv == interval():
+        return True
+    return False
 
 
 class fmat(list):
