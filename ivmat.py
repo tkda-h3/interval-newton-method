@@ -202,10 +202,13 @@ class ivmat(list):
 
   @classmethod 
   def is_empty(cls, x):
+    """
+    1成分でもinterval()ならばTrue
+    """
     for iv in cls._flatten(x):
-      if not iv == interval():
-        return False
-    return True
+      if iv == interval():
+        return True
+    return False
 
 
 class fmat(list):
@@ -268,6 +271,7 @@ class Krawczyk():
   def is_make_sure_solution_exist(self,X, trace=False):
     """
     解の存在を保証する判定法
+    Returns: flag, KX & X
     """
     Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
     R = ivmat.eye(self.dim) - ivmat.dot(Y, self.f_grad.apply_args(X))
@@ -281,14 +285,14 @@ class Krawczyk():
       print 'ivmat.is_in(KX, X) == ', ivmat.is_in(KX, X)
     #step4
     if ivmat.is_empty(KX & X):
-      return self._NO_SOLUTIONS_FLAG
+      return self._NO_SOLUTIONS_FLAG, KX & X
     if ivmat.is_in(KX, X):
       if R.norm < 1:
-        return self._EXACT_1_SOLUTION_FLAG
+        return self._EXACT_1_SOLUTION_FLAG, KX & X
       else:
-        return self._MULTI_SOLUTIONS_FLAG
+        return self._MULTI_SOLUTIONS_FLAG, KX & X
     else:
-      return self._UNCLEAR_SOLUTION_FLAG
+      return self._UNCLEAR_SOLUTION_FLAG, KX & X
       
   def is_make_sure_not_solution_exist(self, X, trace=False):
     """
@@ -334,23 +338,23 @@ class Krawczyk():
         continue # to step2
       else:
         #step4
-        flag = self.is_make_sure_solution_exist(X, trace)
+        flag, kx_and_x = self.is_make_sure_solution_exist(X, trace)
         if flag == self._NO_SOLUTIONS_FLAG:#解が存在しないことが確定
           continue # to step2
         #step5
         elif flag == self._UNCLEAR_SOLUTION_FLAG:#解の存在・非存在について何もわからない
-          X_1,X_2 = Krawczyk.bisect(X)
+          X_1,X_2 = Krawczyk.bisect(kx_and_x)
           S.append(X_1)
           S.append(X_2)
           continue # to step2
         #step6,7
         elif flag == self._EXACT_1_SOLUTION_FLAG:# 解が1つのみ
           #step6
-          T.append(X)
+          T.append(kx_and_x)
           continue # to step2
         elif flag == self._MULTI_SOLUTIONS_FLAG:# 解が複数
           #step7
-          X_1,X_2 = Krawczyk.bisect(X)
+          X_1,X_2 = Krawczyk.bisect(kx_and_x)
           S.append(X_1)
           S.append(X_2)
           continue # to step2
