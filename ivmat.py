@@ -106,13 +106,25 @@ class ivmat(list):
         mat[i][j] = max(map(lambda v: abs(v), iv[0]))
     return mat
 
-  def argmax_width(self):
+  def get_max_width_and_index(self):
+    """
+    Returns:
+      (index_of_max_width, max_width)
+    """
     X = ivmat._flatten(self)
     # [(0, width(x_1)), (1, width(x_2)),...]
     X_width = list(enumerate(map(lambda x: x[0][1]-x[0][0] , X)))
     X_width.sort(key=lambda x: -x[1])#降順にソート
-    return X_width[0][0]
+    return X_width[0]
+  
+  def max_width(self):
+    index_of_max_width, max_width = self.get_max_width_and_index()
+    return max_width
     
+  def argmax_width(self):
+    index_of_max_width, max_width = self.get_max_width_and_index()
+    return index_of_max_width
+
   @property
   def norm(self):
     absmat = self.abs()
