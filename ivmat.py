@@ -219,6 +219,20 @@ class ivmat(list):
         return False
     return True
 
+  @classmethod
+  def uniform_mat(cls, value, shape):
+    size = shape[0] * shape[1]
+    if not isinstance(size, int):
+      raise cls.NotIntError()
+    args = [[value for j in range(shape[1])] for i in range(shape[0])]
+    return ivmat(args)
+  
+  def extend_width(self, width=1e-5):
+    if self.max_width() > width:
+      raise self.WideWidthError()
+    iv = interval[(-1 * width)/2.0, width/2.0]
+    return self.midpoint + ivmat.uniform_mat(iv, self.shape)
+
 
 class fmat(list):
   def apply_args(self,X_mat):
