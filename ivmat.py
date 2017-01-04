@@ -214,10 +214,13 @@ class ivmat(list):
 
   @classmethod 
   def is_empty(cls, x):
+    """
+    1つでも interval()ならTrue
+    """
     for iv in cls._flatten(x):
-      if not iv == interval():
-        return False
-    return True
+      if iv == interval():
+        return True
+    return False
 
   @classmethod
   def uniform_mat(cls, value, shape):
@@ -328,7 +331,7 @@ class Krawczyk():
       return self._NO_SOLUTIONS_FLAG
     
   @classmethod
-  def bisect(cls, X):
+  def bisect(cls, X, trace):
     if not X.shape[1] == 1:
       raise ivmat.DimentionNotMatchError()
     index = X.argmax_width()
@@ -338,18 +341,32 @@ class Krawczyk():
     X_1[index][0] = interval[iv_inf, iv_mid]
     X_2 = X.copy()
     X_2[index][0] = interval[iv_mid, iv_sup]
+    if trace and (X==X_1 or X==X_2):
+      print '---- bisect(cls, X, trace) ----'
+      print 'X__ ==', X
+      print 'X_1 ==', X_1
+      print 'X_2 ==', X_2
+      print '---'*10
+      return Krawczyk.bisect(X.extend_width(), trace)
     return X_1,X_2
     
   def find_all_solution(self, trace=False):
     # step1
     S = [self.X]
     T = []
+    cnt = 0
     while(True):
-      if trace:
-        print '--------'*5
-        pprint(S)
+      cnt += 1
+      if cnt % 50 == 0:
+        trace = True
+        print '---- '+str(cnt)+' -'+'-'*20
+        print len(S)
+        if len(S) < 10:
+          pprint(S)
         pprint(T)
         print '----@@@----'*5
+      else:
+        trace = False
       # step2
       if not S: # S is empty
         break
@@ -365,7 +382,7 @@ class Krawczyk():
           continue # to step2
         #step5
         elif flag == self._UNCLEAR_SOLUTION_FLAG:#解の存在・非存在について何もわからない
-          X_1,X_2 = Krawczyk.bisect(X)
+          X_1,X_2 = Krawczyk.bisect(X, trace)
           S.append(X_1)
           S.append(X_2)
           continue # to step2
@@ -376,7 +393,7 @@ class Krawczyk():
           continue # to step2
         elif flag == self._MULTI_SOLUTIONS_FLAG:# 解が複数
           #step7
-          X_1,X_2 = Krawczyk.bisect(X)
+          X_1,X_2 = Krawczyk.bisect(X, trace)
           S.append(X_1)
           S.append(X_2)
           continue # to step2
