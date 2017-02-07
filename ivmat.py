@@ -323,15 +323,16 @@ class Krawczyk():
                 f.write('\nivmat.is_in(KX, X) == ' + str(ivmat.is_in(KX, X)))
                 f.write('\n\n')
         # step4
-        if ivmat.is_empty(KX & X):
-            return self._NO_SOLUTIONS_FLAG
+        new_X = KX & X
+        if ivmat.is_empty(new_X):
+            return new_X, self._NO_SOLUTIONS_FLAG
         if ivmat.is_in(KX, X):
             if R.norm < 1:
-                return self._EXACT_1_SOLUTION_FLAG
+                return new_X, self._EXACT_1_SOLUTION_FLAG
             else:
-                return self._MULTI_SOLUTIONS_FLAG
+                return new_X, self._MULTI_SOLUTIONS_FLAG
         else:
-            return self._UNCLEAR_SOLUTION_FLAG
+            return new_X, self._UNCLEAR_SOLUTION_FLAG
 
     def is_make_sure_not_solution_exist(self, X, trace=False):
         """
@@ -364,11 +365,20 @@ class Krawczyk():
         # return Krawczyk.bisect(X.extend_width(), trace)
         return X_1, X_2
 
+    def prove_algorithm(X):
+        MAX_ITERATION_NUM = 10
+        MU = 0.9
+        TAU = 1.01
+        d = 1.7976931348623157e+308
+        d_prev = 1.7976931348623157e+308
+        while(True):
+            pass
+
     def find_all_solution(self, trace=False):
         # step1
         S = [self.X]
         T = []
-        U = [] # これ以上は浮動小数点演算の
+        U = []  # これ以上は浮動小数点演算の
         cnt = 0
         while(True):
             cnt += 1
@@ -393,17 +403,18 @@ class Krawczyk():
                 break
             X = S.pop(0)
 
-            if X.max_width() < 1e-10: # 限界の精度を決める
+            if X.max_width() < 1e-10:
+                # 限界の精度を決める
                 U.append(X)
                 continue
-            
+
             # step3
             flag = self.is_make_sure_not_solution_exist(X, trace)
             if flag == self._NO_SOLUTIONS_FLAG:
                 continue  # to step2
             else:
                 # step4
-                flag = self.is_make_sure_solution_exist(X, trace)
+                X, flag = self.is_make_sure_solution_exist(X, trace)
                 if flag == self._NO_SOLUTIONS_FLAG:  # 解が存在しないことが確定
                     continue  # to step2
                 # step5
