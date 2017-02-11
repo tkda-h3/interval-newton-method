@@ -436,7 +436,9 @@ class Krawczyk():
         U = []  # これ以上は浮動小数点演算の
         cnt = 0
         prove_trace_flag = False
+        S_sizes = []
         while(True):
+            S_sizes.append(len(S))
             cnt += 1
             if cnt > cnt_max:
                 print 'break becase cnt > %d' % cnt_max
@@ -456,10 +458,10 @@ class Krawczyk():
                 # trace = False
                 pass
 
-            if 210 < cnt < 220:
-                prove_trace_flag = True
-            else:
-                prove_trace_flag = False
+            # if 210 < cnt < 220:
+            #     prove_trace_flag = True
+            # else:
+            #     prove_trace_flag = False
 
             # step2
             if not S:  # S is empty
@@ -531,11 +533,12 @@ class Krawczyk():
                         print prove_flag
                         print '[step7] なんか変'
         # Tは解が一意に存在するboxのlist
-        print()
+        print
+        print cnt
         print('---------- 最終的なS -----------')
         pprint(S)
         print('---------- 最終的なU -----------')
         pprint(U)
         print('---------- 最終的なT -----------')
         pprint(T)
-        return map(lambda x: self.refine(x), T)
+        return map(lambda x: self.refine(x), T), S_sizes
