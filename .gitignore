@@ -88,3 +88,10 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# data file
+*.csv
+
+# log file
+*.log
+*.txt
