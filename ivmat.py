@@ -433,7 +433,7 @@ class Krawczyk():
         # step1
         S = [self.X]
         T = []
-        U = []  # これ以上は浮動小数点演算の
+        U = []  # これ以上は浮動小数点演算の限界
         cnt = 0
         prove_trace_flag = False
         S_sizes = []
