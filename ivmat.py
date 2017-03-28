@@ -460,9 +460,13 @@ class Krawczyk():
         cnt = 0
         prove_trace_flag = False
         S_sizes = []
+        T_sizes = []
+        U_sizes = []
         while(True):
             cnt += 1
             S_sizes.append(len(S))
+            T_sizes.append(len(T))
+            U_sizes.append(len(U))
             if cnt > cnt_max:
                 break
 
@@ -565,6 +569,7 @@ class Krawczyk():
 
         # Tは解が一意に存在するboxのlist
         logger.info('Loop end. cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
+        print('Loop end. cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
         print
         print cnt
         print('---------- 最終的なS[:10] -----------')
@@ -574,4 +579,4 @@ class Krawczyk():
         print('---------- 最終的なT -----------')
         pprint(T)
 
-        return map(lambda x: self.refine(x), T), S_sizes
+        return map(lambda x: self.refine(x), T), S_sizes, T_sizes, U_sizes
