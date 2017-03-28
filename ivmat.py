@@ -4,6 +4,7 @@
 from interval import interval, inf
 import numpy as np
 from pprint import pprint
+from _logger import logger
 
 
 class ivmat(list):
@@ -270,6 +271,13 @@ class ivmat(list):
     def extend_width(self, expantion_ratio=1.01):
         return self.midpoint + (expantion_ratio * (self - self.midpoint))
 
+    @classmethod
+    def max(cls, x):
+        """
+        xがscalarの時、要素の最大値を返す
+        """
+        return max(cls._flatten(x))
+
 
 class fmat(list):
 
@@ -336,8 +344,10 @@ class Krawczyk():
         return X
 
     def get_R_and_KX(self, X):
-        Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
-        R = ivmat.eye(self.dim) - ivmat.dot(Y, self.f_grad.apply_args(X))
+        F1_X = self.f_grad.apply_args(X)  # F'(X)
+        mF1_X = F1_X.midpoint.to_scalar()  # m(F'(X))
+        Y = mF1_X.get_pinv()
+        R = ivmat.eye(self.dim) - ivmat.dot(Y, F1_X)
         y = X.midpoint
         KX = y - ivmat.dot(Y, self.f.apply_args(y)) + ivmat.dot(R, (X - y))
         return R, KX
@@ -346,15 +356,17 @@ class Krawczyk():
         """
         解の存在を保証する判定法
         """
+        mf_grad_x = self.f_grad.apply_args(X).midpoint.to_scalar()  # m(f'(x))
         R, KX = self.get_R_and_KX(X)
-        if True:
-            with open('log.txt', 'a') as f:
-                f.write('X == ' + str(X))
-                f.write('\nKX == ' + str(KX))
-                f.write('\nR.norm == ' + str(R.norm))
-                f.write('\nivmat.is_empty(KX & X) == ' + str(ivmat.is_empty(KX & X)))
-                f.write('\nivmat.is_in(KX, X) == ' + str(ivmat.is_in(KX, X)))
-                f.write('\n\n')
+        logger.info((
+            '\n'
+            'X: {}\n'
+            'KX: {}\n'
+            'R.norm: {}\n'
+            'm(f\'(x)): {}\n'
+            'is_empty(KX & X):{}\n'
+            'is_in(KX, X):{}\n').format(X, KX, R.norm, mf_grad_x, ivmat.is_empty(KX & X), ivmat.is_in(KX, X)))
+
         # step4
         new_X = KX & X
         if ivmat.is_empty(new_X):
@@ -406,7 +418,6 @@ class Krawczyk():
         X_0 = X  # 最初のX
         while(True):
             if not((d < MU * d_prev or (d == inf and d_prev == inf)) and ivmat.is_in(X, init_X) and k < max_iter_num):
-                if trace: print (d < MU * d_prev or (d == inf and d_prev == inf)), ivmat.is_in(X, init_X), k < max_iter_num, k, d, MU * d_prev
                 break
             R, new_X = self.get_R_and_KX(X)
             kx_and_x, flag = self.is_make_sure_solution_exist(X)
@@ -426,54 +437,60 @@ class Krawczyk():
         S = [self.X]
         T = []
         U = []  # これ以上は浮動小数点演算の限界
+        logger.info('[step 1] init_X:{}, len(S):{}, len(T):{}, len(U)'.format(init_X, len(S), len(T), len(U)))
         cnt = 0
         prove_trace_flag = False
         S_sizes = []
         while(True):
-            S_sizes.append(len(S))
             cnt += 1
+            S_sizes.append(len(S))
             if cnt > cnt_max:
-                print 'break becase cnt > %d' % cnt_max
                 break
-            if cnt % 100 == 0:
-                print '---- ' + str(cnt) + ' -' + '--' * 20
-                print 'len(S) == %d' % len(S)
-                if len(S) < 10:
-                    pprint(S)
-                print('len(T) == ' + str(len(T)))
-                if (len(T) < 20):
-                    pprint(T)
-                print '----------------' * 5
 
+            logger.info('cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
+            if cnt % 50 == 0:
+                logger.info('\n--- S ---\n{}'.format(S[:10]))
+                logger.info('\n--- T ---\n{}'.format(T[:10]))
+                logger.info('---' * 20)
             # step2
+            logger.info('[step 2]')
             if not S:  # S is empty
                 break
             X = S.pop(0)
+            logger.info('X:{}'.format(X))
 
-            if X.max_width() < 1e-10:
+            if X.max_width() < 1e-7:
                 # 限界の精度を決める
                 U.append(X)
-                continue
+                logger.info('limit width X.max_width():{}'.format(X.max_width()))
+                continue  # to step2
 
             # step3
             flag = self.is_make_sure_not_solution_exist(X, trace)
+            logger.info('[step 3] X:{}, 0-solution:{}'.format(X, flag))
             if flag == self._NO_SOLUTIONS_FLAG:
+                logger.info('[step 3] to [step 2]')
                 continue  # to step2
             else:
                 # step4
                 X, flag = self.is_make_sure_solution_exist(X, trace)
+                logger.info('[step 4] X:{}, flag:{}'.format(X, flag))
                 if flag == self._NO_SOLUTIONS_FLAG:  # 解が存在しないことが確定
+                    logger.info('[step 4] to [step 2]')
                     continue  # to step2
                 # step5
                 elif flag == self._UNCLEAR_SOLUTION_FLAG:  # 解の存在・非存在について何もわからない
                     X, prove_flag = self.prove_algorithm(X, init_X, trace=prove_trace_flag)
+                    logger.info('[step 5] X:{}, prove_flag:{}'.format(X, prove_flag))
                     if prove_flag == self._NO_SOLUTIONS_FLAG:
-                        # print '[step5] is_empty == True'
-                        continue
+                        logger.info('[step 5] to [step 2]')
+                        continue  # to step2
                     elif prove_flag == self._UNCLEAR_SOLUTION_FLAG:
                         X_1, X_2 = Krawczyk.bisect(X, trace)
                         S.append(X_1)
                         S.append(X_2)
+                        logger.info('[step 5] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
+                        logger.info('[step 5] to [step 2]')
                         continue  # to step2
                     elif prove_flag == self._EXACT_1_SOLUTION_FLAG:
                         T.append(X)
@@ -482,45 +499,60 @@ class Krawczyk():
                         X_1, X_2 = Krawczyk.bisect(X, trace)
                         S.append(X_1)
                         S.append(X_2)
-                        continue  # to step2                        
+                        logger.info('[step 5] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
+                        logger.info('[step 5] to [step 2]')
+                        continue  # to step2
                     else:
                         print prove_flag
                         print '[step5] なんか変'
 
                 # step6,7
-                elif flag == self._EXACT_1_SOLUTION_FLAG:  # 解が1つのみ
+                elif flag == self._EXACT_1_SOLUTION_FLAG:
                     # step6
                     T.append(X)
+                    logger.info('[step 6] exact 1 solution in X:{}'.format(X))
+                    logger.info('[step 6] to [step 2]')
                     continue  # to step2
                 elif flag == self._MULTI_SOLUTIONS_FLAG:  # 解が複数
                     # step7
                     X, prove_flag = self.prove_algorithm(X, init_X, trace=prove_trace_flag)
+                    logger.info('[step 7] X:{}, prove_flag:{}'.format(X, flag))
+
                     if prove_flag == self._NO_SOLUTIONS_FLAG:
-                        print '[step7] is_empty == True'
+                        logger.info('[step 7] to [step 2]')
                         continue
                     elif prove_flag == self._UNCLEAR_SOLUTION_FLAG:
                         X_1, X_2 = Krawczyk.bisect(X, trace)
                         S.append(X_1)
                         S.append(X_2)
+                        logger.info('[step 7] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
+                        logger.info('[step 7] to [step 2]')
                         continue  # to step2
                     elif prove_flag == self._EXACT_1_SOLUTION_FLAG:
                         T.append(X)
+                        logger.info('[step 7] exact 1 solution in X:{}'.format(X))
+                        logger.info('[step 7] to [step 2]')
                         continue
                     elif prove_flag == self._MULTI_SOLUTIONS_FLAG:
                         X_1, X_2 = Krawczyk.bisect(X, trace)
                         S.append(X_1)
                         S.append(X_2)
-                        continue  # to step2                        
+                        logger.info('[step 7] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
+                        logger.info('[step 7] to [step 2]')
+                        continue  # to step2
                     else:
                         print prove_flag
                         print '[step7] なんか変'
+
         # Tは解が一意に存在するboxのlist
+        logger.info('Loop end. cnt:{}, len(S):{}, len(T):{}'.format(cnt, len(S), len(T)))
         print
         print cnt
         print('---------- 最終的なS[:10] -----------')
         pprint(S[:10])
-        print('---------- 最終的なU -----------')
-        pprint(U)
+        print('---------- 最終的なU[:10] -----------')
+        pprint(U[:10])
         print('---------- 最終的なT -----------')
         pprint(T)
+
         return map(lambda x: self.refine(x), T), S_sizes
