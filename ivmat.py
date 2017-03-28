@@ -72,6 +72,13 @@ class ivmat(list):
                          [x - y for x, y in zip(x_row, y_row)],
                          zip(self, other)))
 
+    def __rsub__(self, other):  # x - y
+        if isinstance(other, int) or isinstance(other, float):
+            other = ivmat.uniform_mat(other, self.shape)
+        return ivmat(map(lambda (x_row, y_row):
+                         [y - x for y, x in zip(y_row, x_row)],
+                         zip(other, self)))
+
     def __mul__(self, other):  # x * y
         if isinstance(other, int) or isinstance(other, float):
             other = ivmat.uniform_mat(other, self.shape)
@@ -259,13 +266,9 @@ class ivmat(list):
             raise cls.NotIntError()
         args = [[value for j in range(shape[1])] for i in range(shape[0])]
         return ivmat(args)
-    
+
     def extend_width(self, expantion_ratio=1.01):
         return self.midpoint + (expantion_ratio * (self - self.midpoint))
-        # if self.max_width() > width:
-        #     raise self.WideWidthError()
-        # iv = interval[(-1 * width) / 2.0, width / 2.0]
-        # return self.midpoint + ivmat.uniform_mat(iv, self.shape)
 
 
 class fmat(list):
@@ -343,10 +346,6 @@ class Krawczyk():
         """
         解の存在を保証する判定法
         """
-        # Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
-        # R = ivmat.eye(self.dim) - ivmat.dot(Y, self.f_grad.apply_args(X))
-        # y = X.midpoint
-        # KX = y - ivmat.dot(Y, self.f.apply_args(y)) + ivmat.dot(R, (X - y))
         R, KX = self.get_R_and_KX(X)
         if True:
             with open('log.txt', 'a') as f:
@@ -405,27 +404,20 @@ class Krawczyk():
         d_prev = inf
         k = 0
         X_0 = X  # 最初のX
-        X_prev = X
         while(True):
             if not((d < MU * d_prev or (d == inf and d_prev == inf)) and ivmat.is_in(X, init_X) and k < max_iter_num):
                 if trace: print (d < MU * d_prev or (d == inf and d_prev == inf)), ivmat.is_in(X, init_X), k < max_iter_num, k, d, MU * d_prev
                 break
-            # X_prev = X
-            # if trace: print '------- %d --------' % k
-            # if trace: print '[start]', X_prev
             R, new_X = self.get_R_and_KX(X)
             kx_and_x, flag = self.is_make_sure_solution_exist(X)
             if flag == self._EXACT_1_SOLUTION_FLAG:
                 return kx_and_x, flag
-            # if trace: print '[Krawczyk]', kx_and_x
             if flag == self._NO_SOLUTIONS_FLAG:
                 return kx_and_x, flag  # new_X.is_empty() == True
             d_prev = d
             d = ivmat.hausdorff_distance(X, new_X)
             k += 1
             X = new_X.midpoint + TAU * (new_X - new_X.midpoint)
-            # if trace: print '[inflation]', X
-            # if trace: print '----'*10
         return X_0, self._UNCLEAR_SOLUTION_FLAG
 
     def find_all_solution(self, trace=False, cnt_max=1000):
@@ -444,24 +436,14 @@ class Krawczyk():
                 print 'break becase cnt > %d' % cnt_max
                 break
             if cnt % 100 == 0:
-                # trace = True
                 print '---- ' + str(cnt) + ' -' + '--' * 20
                 print 'len(S) == %d' % len(S)
                 if len(S) < 10:
                     pprint(S)
-                print('T')
                 print('len(T) == ' + str(len(T)))
                 if (len(T) < 20):
                     pprint(T)
                 print '----------------' * 5
-            else:
-                # trace = False
-                pass
-
-            # if 210 < cnt < 220:
-            #     prove_trace_flag = True
-            # else:
-            #     prove_trace_flag = False
 
             # step2
             if not S:  # S is empty
@@ -535,8 +517,8 @@ class Krawczyk():
         # Tは解が一意に存在するboxのlist
         print
         print cnt
-        print('---------- 最終的なS -----------')
-        pprint(S)
+        print('---------- 最終的なS[:10] -----------')
+        pprint(S[:10])
         print('---------- 最終的なU -----------')
         pprint(U)
         print('---------- 最終的なT -----------')
