@@ -95,3 +95,4 @@ ENV/
 # log file
 *.log
 *.txt
+*.out
