@@ -94,6 +94,20 @@ class ivmat(list):
                          [x * y for x, y in zip(x_row, y_row)],
                          zip(self, other)))
 
+    def __truediv__(self, other):  # self / other
+        if isinstance(other, int) or isinstance(other, float):
+            other = ivmat.uniform_mat(other, self.shape)
+        return ivmat(map(lambda (x_row, y_row):
+                         [x / y for x, y in zip(x_row, y_row)],
+                         zip(self, other)))
+
+    def __rtruediv__(self, other):  # other / self
+        if isinstance(other, int) or isinstance(other, float):
+            other = ivmat.uniform_mat(other, self.shape)
+        return ivmat(map(lambda (x_row, y_row):
+                         [x / y for x, y in zip(x_row, y_row)],
+                         zip(other, self)))
+
     def __and__(self, other):
         return ivmat(map(lambda (x_row, y_row):
                          [x & y for x, y in zip(x_row, y_row)],
@@ -322,20 +336,13 @@ class Krawczyk():
         y = X.midpoint.to_scalar()
         Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
         Z = X - y
-        if trace:
-            pprint(X)
         for i in range(iter_num):
             left = y - ivmat.dot(Y, self.f.apply_args(y))
             right = ivmat.dot(ivmat.eye(self.dim) -
                               ivmat.dot(Y, self.f_grad.apply_args(X)), Z)
             KX = left + right
             X = KX & X
-            if trace:
-                print '---------', i, '------------------'
-                pprint(X)
             if ivmat.is_empty(X):
-                print '---------- ivmat.is_empty(X) == True -----'+'---'*30
-                pprint(X)
                 break  # return X
             # update
             y = X.midpoint
@@ -346,8 +353,20 @@ class Krawczyk():
     def get_R_and_KX(self, X):
         F1_X = self.f_grad.apply_args(X)  # F'(X)
         mF1_X = F1_X.midpoint.to_scalar()  # m(F'(X))
-        Y = mF1_X.get_pinv()
-        R = ivmat.eye(self.dim) - ivmat.dot(Y, F1_X)
+        logger.info('m(F\'(x)): {}'.format(mF1_X))
+        logger.info('ivmat.max(mF1_X): {}'.format(ivmat.max(mF1_X.to_interval().abs())))
+        digit = int(np.log10(ivmat.max(mF1_X.to_interval().abs()))) + 20
+        scale = 10.0 ** digit
+        logger.info('scale: {}'.format(scale))
+        if -100 < digit < 100:  # 値が正常範囲内なら工夫なし
+            Y = mF1_X.get_pinv()
+            R = ivmat.eye(self.dim) - ivmat.dot(Y, F1_X)
+            logger.info('[no scale] Y:{}'.format(Y))
+        else:  # オーバーフローが発生しないように工夫
+            Y = (mF1_X.__truediv__(scale)).get_pinv()
+            R = ivmat.eye(self.dim) - ivmat.dot(Y, F1_X) * scale
+            logger.info('[scale used] Y:{}'.format(Y))
+
         y = X.midpoint
         KX = y - ivmat.dot(Y, self.f.apply_args(y)) + ivmat.dot(R, (X - y))
         return R, KX
@@ -431,7 +450,7 @@ class Krawczyk():
             X = new_X.midpoint + TAU * (new_X - new_X.midpoint)
         return X_0, self._UNCLEAR_SOLUTION_FLAG
 
-    def find_all_solution(self, trace=False, cnt_max=1000):
+    def find_all_solution(self, trace=False, cnt_max=1000, max_width=1e-8):
         init_X = self.X
         # step1
         S = [self.X]
@@ -441,9 +460,13 @@ class Krawczyk():
         cnt = 0
         prove_trace_flag = False
         S_sizes = []
+        T_sizes = []
+        U_sizes = []
         while(True):
             cnt += 1
             S_sizes.append(len(S))
+            T_sizes.append(len(T))
+            U_sizes.append(len(U))
             if cnt > cnt_max:
                 break
 
@@ -457,9 +480,9 @@ class Krawczyk():
             if not S:  # S is empty
                 break
             X = S.pop(0)
-            logger.info('X:{}'.format(X))
+            logger.info('[step 2] S pop X. X:{}'.format(X))
 
-            if X.max_width() < 1e-7:
+            if X.max_width() < max_width:
                 # 限界の精度を決める
                 U.append(X)
                 logger.info('limit width X.max_width():{}'.format(X.max_width()))
@@ -545,7 +568,8 @@ class Krawczyk():
                         print '[step7] なんか変'
 
         # Tは解が一意に存在するboxのlist
-        logger.info('Loop end. cnt:{}, len(S):{}, len(T):{}'.format(cnt, len(S), len(T)))
+        logger.info('Loop end. cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
+        print('Loop end. cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
         print
         print cnt
         print('---------- 最終的なS[:10] -----------')
@@ -555,4 +579,4 @@ class Krawczyk():
         print('---------- 最終的なT -----------')
         pprint(T)
 
-        return map(lambda x: self.refine(x), T), S_sizes
+        return map(lambda x: self.refine(x), T), S_sizes, T_sizes, U_sizes
