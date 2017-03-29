@@ -480,7 +480,7 @@ class Krawczyk():
             if not S:  # S is empty
                 break
             X = S.pop(0)
-            logger.info('X:{}'.format(X))
+            logger.info('[step 2] S pop X. X:{}'.format(X))
 
             if X.max_width() < max_width:
                 # 限界の精度を決める
