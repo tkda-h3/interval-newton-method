@@ -463,6 +463,7 @@ class Krawczyk():
         S_sizes = []
         T_sizes = []
         U_sizes = []
+        animation_box.append([(S[0], self._UNCLEAR_SOLUTION_FLAG)])
         while(True):
             cnt += 1
             S_sizes.append(len(S))
@@ -480,15 +481,14 @@ class Krawczyk():
             logger.info('[step 2]')
             if not S:  # S is empty
                 break
-            X = S.pop(0)
+            step2_X = X = S.pop(0)
             logger.info('[step 2] S pop X. X:{}'.format(X))
-            animation_box.append((X, self._UNCLEAR_SOLUTION_FLAG))
 
             if X.max_width() < max_width:
                 # 限界の精度を決める
                 U.append(X)
                 logger.info('limit width X.max_width():{}'.format(X.max_width()))
-                animation_box.append((X, 'give up'))
+                animation_box.append([(X, 'give up')])
                 continue  # to step2
 
             # step3
@@ -496,7 +496,7 @@ class Krawczyk():
             logger.info('[step 3] X:{}, flag:{}'.format(X, flag))
             if flag == self._NO_SOLUTIONS_FLAG:
                 logger.info('[step 3] to [step 2]')
-                animation_box.append((X, self._NO_SOLUTIONS_FLAG))
+                animation_box.append([(step2_X, self._NO_SOLUTIONS_FLAG)])
                 continue  # to step2
             else:
                 # step4
@@ -504,7 +504,7 @@ class Krawczyk():
                 logger.info('[step 4] X:{}, flag:{}'.format(X, flag))
                 if flag == self._NO_SOLUTIONS_FLAG:  # 解が存在しないことが確定
                     logger.info('[step 4] to [step 2]')
-                    animation_box.append((X, self._NO_SOLUTIONS_FLAG))
+                    animation_box.append([(step2_X, self._NO_SOLUTIONS_FLAG)])
                     continue  # to step2
                 # step5
                 elif flag == self._UNCLEAR_SOLUTION_FLAG:  # 解の存在・非存在について何もわからない
@@ -512,7 +512,7 @@ class Krawczyk():
                     logger.info('[step 5] X:{}, prove_flag:{}'.format(X, prove_flag))
                     if prove_flag == self._NO_SOLUTIONS_FLAG:
                         logger.info('[step 5] to [step 2]')
-                        animation_box.append((X, self._NO_SOLUTIONS_FLAG))
+                        animation_box.append([(step2_X, self._NO_SOLUTIONS_FLAG)])
                         continue  # to step2
                     elif prove_flag == self._UNCLEAR_SOLUTION_FLAG:
                         X_1, X_2 = Krawczyk.bisect(X, trace)
@@ -520,12 +520,18 @@ class Krawczyk():
                         S.append(X_2)
                         logger.info('[step 5] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
                         logger.info('[step 5] to [step 2]')
-                        animation_box.append((X_1, self._UNCLEAR_SOLUTION_FLAG))
-                        animation_box.append((X_2, self._UNCLEAR_SOLUTION_FLAG))
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X_1, self._UNCLEAR_SOLUTION_FLAG),
+                            (X_2, self._UNCLEAR_SOLUTION_FLAG),
+                        ])
                         continue  # to step2
                     elif prove_flag == self._EXACT_1_SOLUTION_FLAG:
                         T.append(X)
-                        animation_box.append((X, self._EXACT_1_SOLUTION_FLAG))
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X, self._EXACT_1_SOLUTION_FLAG),
+                        ])
                         continue
                     elif prove_flag == self._MULTI_SOLUTIONS_FLAG:
                         X_1, X_2 = Krawczyk.bisect(X, trace)
@@ -533,7 +539,11 @@ class Krawczyk():
                         S.append(X_2)
                         logger.info('[step 5] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
                         logger.info('[step 5] to [step 2]')
-                        animation_box.append((X_1, self._UNCLEAR_SOLUTION_FLAG))
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X_1, self._UNCLEAR_SOLUTION_FLAG),
+                            (X_2, self._UNCLEAR_SOLUTION_FLAG),
+                        ])
                         continue  # to step2
                     else:
                         print prove_flag
@@ -546,7 +556,10 @@ class Krawczyk():
                     T.append(X)
                     logger.info('[step 6] exact 1 solution in X:{}'.format(X))
                     logger.info('[step 6] to [step 2]')
-                    animation_box.append((X, self._EXACT_1_SOLUTION_FLAG))
+                    animation_box.append([
+                        (step2_X, self._NO_SOLUTIONS_FLAG),
+                        (X, self._EXACT_1_SOLUTION_FLAG),
+                    ])
                     continue  # to step2
                 elif flag == self._MULTI_SOLUTIONS_FLAG:  # 解が複数
                     # step7
@@ -555,7 +568,7 @@ class Krawczyk():
 
                     if prove_flag == self._NO_SOLUTIONS_FLAG:
                         logger.info('[step 7] to [step 2]')
-                        animation_box.apppend((X, self._NO_SOLUTIONS_FLAG))
+                        animation_box.append([(step2_X, self._NO_SOLUTIONS_FLAG)])
                         continue
                     elif prove_flag == self._UNCLEAR_SOLUTION_FLAG:
                         X_1, X_2 = Krawczyk.bisect(X, trace)
@@ -563,14 +576,20 @@ class Krawczyk():
                         S.append(X_2)
                         logger.info('[step 7] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
                         logger.info('[step 7] to [step 2]')
-                        animation_box.append((X_1, self._UNCLEAR_SOLUTION_FLAG))
-                        animation_box.append((X_2, self._UNCLEAR_SOLUTION_FLAG))
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X_1, self._UNCLEAR_SOLUTION_FLAG),
+                            (X_2, self._UNCLEAR_SOLUTION_FLAG),
+                        ])
                         continue  # to step2
                     elif prove_flag == self._EXACT_1_SOLUTION_FLAG:
                         T.append(X)
                         logger.info('[step 7] exact 1 solution in X:{}'.format(X))
                         logger.info('[step 7] to [step 2]')
-                        animation_box.append((X, self._EXACT_1_SOLUTION_FLAG))
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X, self._EXACT_1_SOLUTION_FLAG),
+                        ])
                         continue
                     elif prove_flag == self._MULTI_SOLUTIONS_FLAG:
                         X_1, X_2 = Krawczyk.bisect(X, trace)
@@ -578,8 +597,11 @@ class Krawczyk():
                         S.append(X_2)
                         logger.info('[step 7] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
                         logger.info('[step 7] to [step 2]')
-                        animation_box.append((X_1, self._UNCLEAR_SOLUTION_FLAG))
-                        animation_box.append((X_2, self._UNCLEAR_SOLUTION_FLAG))
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X_1, self._UNCLEAR_SOLUTION_FLAG),
+                            (X_2, self._UNCLEAR_SOLUTION_FLAG)
+                        ])
                         continue  # to step2
                     else:
                         print prove_flag
