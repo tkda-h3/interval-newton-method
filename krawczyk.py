@@ -15,9 +15,6 @@ class Krawczyk():
         self.f = f  # fmat object
         self.df = df  # fmat object
         self.X = X  # ivmat object
-        # self.y = self.X.midpoint.to_scalar()
-        # self.Y = self.df(self.X).midpoint.to_scalar().get_pinv()
-        # self.Z = self.X-self.y
         self.dim = len(self.f)
         self._NO_SOLUTIONS_FLAG = '_NO_SOLUTIONS_FLAG'
         self._EXACT_1_SOLUTION_FLAG = '_EXACT_1_SOLUTION_FLAG'
@@ -30,8 +27,8 @@ class Krawczyk():
         """
         # initialize
         X = X_0
-        y = X.midpoint.to_scalar()
-        Y = self.df(X).midpoint.to_scalar().get_pinv()
+        y = ip.mid(X)
+        Y = ip.pinv(ip.mid(self.df(X)))
         Z = X - y
         for i in range(iter_num):
             left = y - ip.dot(Y, self.f(y))
@@ -42,29 +39,29 @@ class Krawczyk():
             if ip.is_empty(X):
                 break  # return X
             # update
-            y = X.midpoint
-            Y = self.df(X).midpoint.to_scalar().get_pinv()
+            y = ip.mid(X)
+            Y = ip.pinv(ip.mid(self.df(X)))
             Z = X - y
         return X
 
     def get_R_and_KX(self, X):
-        F1_X = self.df(X)  # F'(X)
-        mF1_X = F1_X.midpoint.to_scalar()  # m(F'(X))
-        logger.info('m(F\'(x)): {}'.format(mF1_X))
-        logger.info('ip.max(mF1_X): {}'.format(ip.max(mF1_X.to_interval().abs())))
-        digit = int(np.log10(ip.max(mF1_X.to_interval().abs()))) + 20
+        dfx = self.df(X)  # F'(X)
+        mdfx = ip.mid(dfx)  # m(F'(X))
+        logger.info('m(F\'(x)): {}'.format(mdfx))
+        logger.info('ip.max(mdfx): {}'.format(ip.max(mdfx.to_interval().abs())))
+        digit = int(np.log10(ip.max(mdfx.to_interval().abs()))) + 20
         scale = 10.0 ** digit
         logger.info('scale: {}'.format(scale))
         if -100 < digit < 100:  # 値が正常範囲内なら工夫なし
-            Y = mF1_X.get_pinv()
-            R = ip.eye(self.dim) - ip.dot(Y, F1_X)
+            Y = ip.pinv(mdfx)
+            R = ip.eye(self.dim) - ip.dot(Y, dfx)
             logger.info('[no scale] Y:{}'.format(Y))
         else:  # オーバーフローが発生しないように工夫
-            Y = (mF1_X.__truediv__(scale)).get_pinv()
-            R = ip.eye(self.dim) - ip.dot(Y, F1_X) * scale
+            Y = ip.pinv(mdfx.__truediv__(scale))
+            R = ip.eye(self.dim) - ip.dot(Y, dfx) * scale
             logger.info('[scale used] Y:{}'.format(Y))
 
-        y = X.midpoint
+        y = ip.mid(X)
         KX = y - ip.dot(Y, self.f(y)) + ip.dot(R, (X - y))
         return R, KX
 
@@ -72,7 +69,7 @@ class Krawczyk():
         """
         解の存在を保証する判定法
         """
-        mdf_x = self.df(X).midpoint.to_scalar()  # m(f'(x))
+        mdfx = ip.mid(self.df(X))  # m(f'(x))
         R, KX = self.get_R_and_KX(X)
         logger.info((
             '\n'
@@ -81,7 +78,7 @@ class Krawczyk():
             'R.norm: {}\n'
             'm(f\'(x)): {}\n'
             'is_empty(KX & X):{}\n'
-            'is_in(KX, X):{}\n').format(X, KX, R.norm, mdf_x, ip.is_empty(KX & X), ip.is_in(KX, X)))
+            'is_in(KX, X):{}\n').format(X, KX, R.norm, mdfx, ip.is_empty(KX & X), ip.is_in(KX, X)))
 
         # step4
         new_X = KX & X
@@ -144,7 +141,7 @@ class Krawczyk():
             d_prev = d
             d = ip.hausdorff_distance(X, new_X)
             k += 1
-            X = new_X.midpoint + TAU * (new_X - new_X.midpoint)
+            X = ip.mid(new_X) + TAU * (new_X - ip.mid(new_X))
         return X_0, self._UNCLEAR_SOLUTION_FLAG
 
     def find_all_solution(self, trace=False, cnt_max=1000, max_width=1e-8):

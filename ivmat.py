@@ -125,13 +125,23 @@ class ivmat(list):
                 mat[i][j] = sum
         return mat
 
-    @property
-    def midpoint(self):
-        mat = ivmat([[None for col in range(self.shape[1])]
-                     for row in range(self.shape[0])])
+    @classmethod
+    def mid(cls, x, scalar=True):
+        """
+        get the midpoint of x
+
+        Param:
+          scalar: 
+            if scalar is True, element of matrix is scalar
+        """
+        mat = ivmat([[None for col in range(x.shape[1])]
+                     for row in range(x.shape[0])])
         for i in range(mat.shape[0]):
             for j in range(mat.shape[1]):
-                mat[i][j] = self[i][j].midpoint
+                mat[i][j] = x[i][j].midpoint
+
+        if scalar:
+            mat = mat.to_scalar()
         return mat
 
     def abs(self):
@@ -155,7 +165,7 @@ class ivmat(list):
         return X_width[0]
 
     def max_width(self):
-        index_of_max_width, max_width = self.get_max_width_and_index()
+        _, max_width = self.get_max_width_and_index()
         return max_width
 
     def argmax_width(self):
@@ -222,8 +232,10 @@ class ivmat(list):
                 mat[i][j] = interval.cast(self[i][j])
         return mat
 
-    def get_pinv(self):
-        np_pinv = np.around(np.linalg.pinv(np.array(self)), decimals=2)
+
+    @classmethod
+    def pinv(cls, x):
+        np_pinv = np.around(np.linalg.pinv(np.array(x)), decimals=5)
         return ivmat(np_pinv.tolist()).to_interval()
 
     @classmethod
