@@ -143,7 +143,7 @@ class ivmat(list):
         if scalar:
             mat = mat.to_scalar()
         return mat
-
+    
     def abs(self):
         mat = ivmat([[None for col in range(self.shape[1])]
                      for row in range(self.shape[0])])
@@ -223,7 +223,7 @@ class ivmat(list):
                     raise self.NotMidpointError()
                 mat[i][j] = iv[0][0]
         return mat
-
+    
     def to_interval(self):
         mat = ivmat([[None for col in range(self.shape[1])]
                      for row in range(self.shape[0])])
@@ -232,12 +232,11 @@ class ivmat(list):
                 mat[i][j] = interval.cast(self[i][j])
         return mat
 
-
     @classmethod
     def pinv(cls, x):
         np_pinv = np.around(np.linalg.pinv(np.array(x)), decimals=5)
         return ivmat(np_pinv.tolist()).to_interval()
-
+    
     @classmethod
     def eye(cls, n):
         """
@@ -294,7 +293,7 @@ class ivmat(list):
 
     def extend_width(self, expantion_ratio=1.01):
         return self.midpoint + (expantion_ratio * (self - self.midpoint))
-
+    
     @classmethod
     def max(cls, x):
         """
