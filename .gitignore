@@ -96,3 +96,7 @@ ENV/
 *.log
 *.txt
 *.out
+
+# img
+*.png
+*.jpg
