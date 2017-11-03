@@ -191,7 +191,7 @@ class ivmat(list):
             col_index = i % col_num
             mat[row_index][col_index] = x
         return mat
-
+    
     def copy(self):
         return self.reshape(*self.shape)
 
@@ -294,8 +294,7 @@ class ivmat(list):
 
 
 class fmat(list):
-
-    def apply_args(self, X_mat):
+    def __call__(self, X_mat):
         """
         Params:
             X_mat: ivmat([[x_1], [x_2]])
@@ -310,16 +309,33 @@ class fmat(list):
                 tmp.append(f(*X))
             ans.append(tmp)
         return ivmat(ans)
+        
+    # def apply_args(self, X_mat):
+    #     """
+    #     Params:
+    #         X_mat: ivmat([[x_1], [x_2]])
+    #     Returns:
+    #         ivmat
+    #     """
+    #     X = map(lambda x: x[0], X_mat)
+    #     ans = []
+    #     for f_row in self:
+    #         tmp = []
+    #         for f in f_row:
+    #             tmp.append(f(*X))
+    #         ans.append(tmp)
+    #     return ivmat(ans)
+
 
 
 class Krawczyk():
 
-    def __init__(self, f, f_grad, X):
+    def __init__(self, f, df, X):
         self.f = f  # fmat object
-        self.f_grad = f_grad  # fmat object
+        self.df = df  # fmat object
         self.X = X  # ivmat object
         # self.y = self.X.midpoint.to_scalar()
-        # self.Y = self.f_grad.apply_args(self.X).midpoint.to_scalar().get_pinv()
+        # self.Y = self.df(self.X).midpoint.to_scalar().get_pinv()
         # self.Z = self.X-self.y
         self.dim = len(self.f)
         self._NO_SOLUTIONS_FLAG = '_NO_SOLUTIONS_FLAG'
@@ -334,24 +350,24 @@ class Krawczyk():
         # initialize
         X = X_0
         y = X.midpoint.to_scalar()
-        Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
+        Y = self.df(X).midpoint.to_scalar().get_pinv()
         Z = X - y
         for i in range(iter_num):
-            left = y - ivmat.dot(Y, self.f.apply_args(y))
+            left = y - ivmat.dot(Y, self.f(y))
             right = ivmat.dot(ivmat.eye(self.dim) -
-                              ivmat.dot(Y, self.f_grad.apply_args(X)), Z)
+                              ivmat.dot(Y, self.df(X)), Z)
             KX = left + right
             X = KX & X
             if ivmat.is_empty(X):
                 break  # return X
             # update
             y = X.midpoint
-            Y = self.f_grad.apply_args(X).midpoint.to_scalar().get_pinv()
+            Y = self.df(X).midpoint.to_scalar().get_pinv()
             Z = X - y
         return X
 
     def get_R_and_KX(self, X):
-        F1_X = self.f_grad.apply_args(X)  # F'(X)
+        F1_X = self.df(X)  # F'(X)
         mF1_X = F1_X.midpoint.to_scalar()  # m(F'(X))
         logger.info('m(F\'(x)): {}'.format(mF1_X))
         logger.info('ivmat.max(mF1_X): {}'.format(ivmat.max(mF1_X.to_interval().abs())))
@@ -368,14 +384,14 @@ class Krawczyk():
             logger.info('[scale used] Y:{}'.format(Y))
 
         y = X.midpoint
-        KX = y - ivmat.dot(Y, self.f.apply_args(y)) + ivmat.dot(R, (X - y))
+        KX = y - ivmat.dot(Y, self.f(y)) + ivmat.dot(R, (X - y))
         return R, KX
 
     def is_make_sure_solution_exist(self, X, trace=False):
         """
         解の存在を保証する判定法
         """
-        mf_grad_x = self.f_grad.apply_args(X).midpoint.to_scalar()  # m(f'(x))
+        mdf_x = self.df(X).midpoint.to_scalar()  # m(f'(x))
         R, KX = self.get_R_and_KX(X)
         logger.info((
             '\n'
@@ -384,7 +400,7 @@ class Krawczyk():
             'R.norm: {}\n'
             'm(f\'(x)): {}\n'
             'is_empty(KX & X):{}\n'
-            'is_in(KX, X):{}\n').format(X, KX, R.norm, mf_grad_x, ivmat.is_empty(KX & X), ivmat.is_in(KX, X)))
+            'is_in(KX, X):{}\n').format(X, KX, R.norm, mdf_x, ivmat.is_empty(KX & X), ivmat.is_in(KX, X)))
 
         # step4
         new_X = KX & X
@@ -403,7 +419,7 @@ class Krawczyk():
         解の非存在を保証する判定法
         """
         f = self.f
-        FX = f.apply_args(X)
+        FX = f(X)
         if ivmat.is_0_in(FX):  # 全成分に0が含まれている
             return self._UNCLEAR_SOLUTION_FLAG
         else:
