@@ -17,6 +17,7 @@ class Krawczyk():
         self.X = X  # ivmat object
         self.dim = len(self.f)
         self._NO_SOLUTIONS_FLAG = '_NO_SOLUTIONS_FLAG'
+        self._NO_MINMUM_FLAG = '_NO_MINMUM_FLAG'
         self._EXACT_1_SOLUTION_FLAG = '_EXACT_1_SOLUTION_FLAG'
         self._MULTI_SOLUTIONS_FLAG = '_MULTI_SOLUTIONS_FLAG'  # less than 1 solution
         self._UNCLEAR_SOLUTION_FLAG = '_UNCLEAR_SOLUTION_FLAG'
@@ -257,3 +258,147 @@ class Krawczyk():
         pprint(T)
 
         return map(lambda x: self.refine(x), T), S_sizes, T_sizes, U_sizes, animation_box
+
+
+    def find_global_minimum(self, f, trace=False, cnt_max=1000, max_width=1e-8):
+        """
+        Params:
+          f: 最小化したい関数
+        """
+        class TmpMin():
+            def __init__(self):
+                self.sup = inf
+
+                
+        init_X = self.X
+        # step1
+        S = [self.X]
+        T = []
+        U = []  # これ以上は浮動小数点演算の限界
+        animation_box = []  # アニメーション作成のために過程を保存
+        tmp_min = TmpMin()
+        logger.info('[step 1] init_X:{}, len(S):{}, len(T):{}, len(U)'.format(init_X, len(S), len(T), len(U)))
+
+        cnt = 0
+        prove_trace_flag = False
+        S_sizes = []
+        T_sizes = []
+        U_sizes = []
+        animation_box.append([(S[0], self._UNCLEAR_SOLUTION_FLAG)])
+        while(True):
+            cnt += 1
+            S_sizes.append(len(S))
+            T_sizes.append(len(T))
+            U_sizes.append(len(U))
+            if cnt > cnt_max:
+                break
+
+            logger.info('cnt:{}, tmp_min.sup:{}, len(S):{}, len(T):{}, len(U):{}'\
+                        .format(cnt, tmp_min.sup, len(S), len(T), len(U)))
+
+            # step2
+            logger.info('[step 2]')
+            if not S:  # S is empty
+                break
+            step2_X = X = S.pop(0)
+            logger.info('[step 2] S pop X. X:{}'.format(X))
+
+            if X.max_width() < max_width:
+                # 限界の精度を決める
+                U.append(X)
+                logger.info('limit width X.max_width():{}'.format(X.max_width()))
+                animation_box.append([(X, self._UNCLEAR_SOLUTION_FLAG)])
+                continue  # to step2
+
+            if f(X)[0][0][0].inf > tmp_min.sup: # 最小になり得ない
+                animation_box.append([(step2_X, self._NO_MINMUM_FLAG)])                
+                logger.info('Not global minima. X: {}, f(X)[0][0][0].inf: {}, tmp_min.sup: {}'.format(X, f(X)[0][0][0].inf, tmp_min.sup))
+                continue
+            if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
+                tmp_min.sup = f(X)[0][0][0].sup
+                logger.info('tmp_min.sup is updated to {}. X: {}, f(X)[0][0]: {}'.format(f(X)[0][0][0].sup, X, f(X)[0][0]))            
+            
+            # step3
+            flag = self.is_make_sure_not_solution_exist(X, trace)
+            logger.info('[step 3] X:{}, flag:{}'.format(X, flag))
+            if flag == self._NO_SOLUTIONS_FLAG:
+                logger.info('[step 3] to [step 2]')
+                animation_box.append([(step2_X, self._NO_SOLUTIONS_FLAG)])
+                continue  # to step2
+            else:
+                # step4
+                X, flag = self.is_make_sure_solution_exist(X, trace)
+                logger.info('[step 4] X:{}, flag:{}'.format(X, flag))
+                if flag == self._NO_SOLUTIONS_FLAG:  # 解が存在しないことが確定
+                    logger.info('[step 4] to [step 2]')
+                    animation_box.append([(step2_X, self._NO_SOLUTIONS_FLAG)])
+                    continue  # to step2
+                
+                # step5
+                elif flag == self._UNCLEAR_SOLUTION_FLAG or \
+                     flag == self._MULTI_SOLUTIONS_FLAG: # 解の存在・非存在判定が失敗した場合
+                    X, prove_flag = self.prove_algorithm(X, init_X, trace=prove_trace_flag)
+                    logger.info('[step 5] X:{}, prove_flag:{}'.format(X, prove_flag))
+                    
+                    if prove_flag == self._NO_SOLUTIONS_FLAG:
+                        logger.info('[step 5] to [step 2]')
+                        animation_box.append([(step2_X, self._NO_SOLUTIONS_FLAG)])
+                        continue  # to step2
+                    elif prove_flag == self._UNCLEAR_SOLUTION_FLAG or \
+                         prove_flag == self._MULTI_SOLUTIONS_FLAG:
+                        X_1, X_2 = Krawczyk.bisect(X, trace)
+                        S.append(X_1)
+                        S.append(X_2)
+                        logger.info('[step 5] bisect is succeeded\n--- X_1 ---\n{} \n--- X_2 ---\n{}'.format(X_1, X_2))
+                        logger.info('[step 5] to [step 2]')
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X_1, self._UNCLEAR_SOLUTION_FLAG),
+                            (X_2, self._UNCLEAR_SOLUTION_FLAG),
+                        ])
+                        continue  # to step2
+                    elif prove_flag == self._EXACT_1_SOLUTION_FLAG:
+                        if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
+                            tmp_min.sup = f(X)[0][0][0].sup
+                            logger.info('tmp_min.sup is updated to {}. X: {}, f(X)[0][0]: {}'.format(f(X)[0][0][0].sup, X, f(X)[0][0]))
+                            
+                        T.append(X)                            
+                        animation_box.append([
+                            (step2_X, self._NO_SOLUTIONS_FLAG),
+                            (X, self._EXACT_1_SOLUTION_FLAG),
+                        ])
+                        continue
+                    else:
+                        logger.error('[step5] なんか変. prove_flag: {}'.format(prove_flag))
+                        raise ''
+                    
+                # step6,7
+                elif flag == self._EXACT_1_SOLUTION_FLAG:
+                    if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
+                        tmp_min.sup = f(X)[0][0][0].sup
+                        logger.info('tmp_min.sup is updated to {}. X: {}, f(X)[0][0]: {}'.format(f(X)[0][0][0].sup, X, f(X)[0][0]))
+
+                    # step6
+                    T.append(X)
+                    logger.info('[step 6] exact 1 solution in X:{}'.format(X))
+                    logger.info('[step 6] to [step 2]')
+                    animation_box.append([
+                        (step2_X, self._NO_SOLUTIONS_FLAG),
+                        (X, self._EXACT_1_SOLUTION_FLAG),
+                    ])
+                    continue  # to step2
+
+        # Tは解が一意に存在するboxのlist
+        logger.info('Loop end. cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
+        print('Loop end. cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
+        print
+        print cnt
+        print('---------- 最終的なS[:10] -----------')
+        pprint(S[:10])
+        print('---------- 最終的なU[:10] -----------')
+        pprint(U[:10])
+        print('---------- 最終的なT -----------')
+        pprint(T)
+
+        return map(lambda x: self.refine(x), T), S_sizes, T_sizes, U_sizes, animation_box
+    
