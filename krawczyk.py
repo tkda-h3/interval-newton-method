@@ -46,8 +46,8 @@ class Krawczyk():
         return X
 
     def get_R_and_KX(self, X):
-        dfx = self.df(X)  # F'(X)
-        mdfx = ip.mid(dfx)  # m(F'(X))
+        dfx = self.df(X)  # DF'(X)
+        mdfx = ip.mid(dfx)  # m(DF'(X))
         logger.info('m(F\'(x)): {}'.format(mdfx))
         logger.info('ip.max(mdfx): {}'.format(ip.max(mdfx.to_interval().abs())))
         digit = int(np.log10(ip.max(mdfx.to_interval().abs()))) + 20
@@ -77,7 +77,7 @@ class Krawczyk():
             'X: {}\n'
             'KX: {}\n'
             'R.norm: {}\n'
-            'm(f\'(x)): {}\n'
+            'm(df(x)): {}\n'
             'is_empty(KX & X):{}\n'
             'is_in(KX, X):{}\n').format(X, KX, R.norm, mdfx, ip.is_empty(KX & X), ip.is_in(KX, X)))
 
@@ -403,3 +403,4 @@ class Krawczyk():
 
         return map(lambda x: self.refine(x), T), S_sizes, T_sizes, U_sizes, animation_box
     
+
