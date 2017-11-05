@@ -260,14 +260,15 @@ class Krawczyk():
         return map(lambda x: self.refine(x), T), S_sizes, T_sizes, U_sizes, animation_box
 
 
-    def find_global_minimum(self, f, trace=False, cnt_max=1000, max_width=1e-8):
+    def find_global_minimum(self, f, tmp_min_sup=inf, trace=False, cnt_max=1000, max_width=1e-8):
         """
         Params:
           f: 最小化したい関数
+          tmp_min_sup: 最小値の上限値（事前にnelder meadなどで求めた局所最適値を使うと良い）
         """
         class TmpMin():
-            def __init__(self):
-                self.sup = inf
+            def __init__(self, tmp_min_sup):
+                self.sup = tmp_min_sup
 
                 
         init_X = self.X
@@ -276,7 +277,7 @@ class Krawczyk():
         T = []
         U = []  # これ以上は浮動小数点演算の限界
         animation_box = []  # アニメーション作成のために過程を保存
-        tmp_min = TmpMin()
+        tmp_min = TmpMin(tmp_min_sup)
         logger.info('[step 1] init_X:{}, len(S):{}, len(T):{}, len(U)'.format(init_X, len(S), len(T), len(U)))
 
         cnt = 0
