@@ -9,6 +9,7 @@ from interval import (
 )
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from sympy import (
     diff,
@@ -48,6 +49,9 @@ def get_f_df_ddf_from_symbol_representation(f_expr, args):
 def calc_f_meshgrid(f, X_init):
     """
     背景のcontour mapのデータ準備
+    Params:
+        f: fmat object
+        X_init: fの定義域
     Return:
         X, Y = np.meshgrid(x,y)
         Z: X.shapeに対応した関数値
@@ -63,6 +67,19 @@ def calc_f_meshgrid(f, X_init):
     x_lim = (X_init[0][0][0].inf, X_init[0][0][0].sup)
     y_lim = (X_init[1][0][0].inf, X_init[1][0][0].sup)
     return X, Y, Z, x_lim, y_lim
+
+
+def calc_f_expr_meshgrid(f_expr, args, X):
+    f = fmat([[lambdify(args, f_expr, modules=imath)]])
+    return calc_f_meshgrid(f, X)
+
+
+def plot3D(f_expr, args, X):
+    X, Y, Z, _1, _2 = calc_f_expr_meshgrid(f_expr, args, X)        
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.plot_wireframe(X,Y,Z) 
+    plt.show()
 
 
 def visualize_optimization_log(krawczyk_obj, f, animation_box, skip=5, title_prefix=''):
