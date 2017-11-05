@@ -92,6 +92,9 @@ ENV/
 # Mac
 .DS_Store
 
+# image directory
+image/
+
 # data file
 *.csv
 
