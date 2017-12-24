@@ -58,14 +58,17 @@ def calc_f_meshgrid(f, X_init):
         x_lim: x軸の探索区間
         y_lim: y軸の探索区間
     """
-    x = np.arange(X_init[0][0][0].inf, X_init[0][0][0].sup, 0.05) 
-    y = np.arange(X_init[1][0][0].inf, X_init[1][0][0].sup, 0.05) 
-    X, Y = np.meshgrid(x, y)
-    args_list =  np.array([X.flatten(), Y.flatten()]).T[:, :, np.newaxis].tolist()
-    Z = np.array([ip.mid(f(_args))[0][0] for _args in args_list]).reshape(X.shape)
-
     x_lim = (X_init[0][0][0].inf, X_init[0][0][0].sup)
     y_lim = (X_init[1][0][0].inf, X_init[1][0][0].sup)
+    x_range = X_init[0][0][0].sup - X_init[0][0][0].inf
+    y_range = X_init[1][0][0].sup - X_init[1][0][0].inf
+    
+    x = np.arange(X_init[0][0][0].inf, X_init[0][0][0].sup, x_range / 100.0) 
+    y = np.arange(X_init[1][0][0].inf, X_init[1][0][0].sup, y_range / 100.0)
+    X, Y = np.meshgrid(x, y)
+    args_list =  np.array([X.flatten(), Y.flatten()]).T[:, :, np.newaxis].tolist()
+    Z = np.array([ip.mid(f(_args).to_interval())[0][0] for _args in args_list]).reshape(X.shape)
+
     return X, Y, Z, x_lim, y_lim
 
 
@@ -82,13 +85,14 @@ def plot3D(f_expr, args, X):
     plt.show()
 
 
-def visualize_optimization_log(krawczyk_obj, f, animation_box, skip=5, title_prefix=''):
+def visualize_optimization_log(krawczyk_obj, f, animation_box, skip=5, title_prefix='', zscale=None):
     """
     krawczyk_obj: Krawczyk class object
     f: 最適化する関数f
     animation_box: 探索を可視化するためのログ。krawczyk_obj.find_global_minimaの戻り値
     skip: animationのcountのスキップ幅
     title_prefix: matplotlib.figureのタイトルのprefix
+    zscale: if 'log10', contour map のz軸は np.log10(Z)
     """
     def get_rect(x_1, x_2, facecolor_code, edgecolor_code):
         left, right, below, above = x_1[0][0], x_1[0][1], x_2[0][0], x_2[0][1]
@@ -102,6 +106,8 @@ def visualize_optimization_log(krawczyk_obj, f, animation_box, skip=5, title_pre
 
     
     X, Y, Z, x1_lim, x2_lim = calc_f_meshgrid(f, krawczyk_obj.X_init)
+    if zscale == 'log10':
+        Z = np.log10(Z)
     now_string = "{0:%Y%m%d_%H%M%S}".format(datetime.datetime.now())
     dirpath = 'image/{}'.format(now_string)
     os.makedirs(dirpath)
@@ -126,7 +132,7 @@ def visualize_optimization_log(krawczyk_obj, f, animation_box, skip=5, title_pre
                 rect = get_rect(parent_x1, parent_x2, fcolor, ecolor)
                 ax.add_patch(rect)
 
-        # 最後にcontour mapを薄く重ねる    
+        # 最後にcontour mapを薄く重ねる
         im = plt.contour(X, Y, Z, alpha=0.8, zorder=100, shading='gouraud')
         fig.colorbar(im)
         image_path = os.path.join(dirpath, "anime_{0:0>4}.png".format(i))
