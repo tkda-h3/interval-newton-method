@@ -29,7 +29,7 @@ class Krawczyk():
         self.X_init = X_init  # ivmat object
         self.dim = len(self.f)
         
-    def refine(self, X_0, iter_num=10, trace=False):
+    def refine(self, X_0, iter_num=100, trace=False):
         """
         X_0: initial box including unique solution.
         """
@@ -43,6 +43,8 @@ class Krawczyk():
             right = ip.dot(ip.eye(self.dim) -
                               ip.dot(Y, self.df(X)), Z)
             KX = left + right
+            if KX & X == X: # これ以上の改善は見込めない
+                break
             X = KX & X
             if ip.is_empty(X):
                 break  # return X
@@ -366,15 +368,17 @@ class Krawczyk():
                         ])
                         continue  # to step2
                     elif prove_flag == _EXACT_1_SOLUTION_FLAG:
+                        animation_box.append([
+                            (step2_X, _NO_SOLUTIONS_FLAG),
+                            (X, _EXACT_1_SOLUTION_FLAG),
+                        ])                        
+                        print X
+                        X = self.refine(X)
                         if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
                             tmp_min.sup = f(X)[0][0][0].sup
                             logger.info('tmp_min.sup is updated to {}. X: {}, f(X)[0][0]: {}'.format(f(X)[0][0][0].sup, X, f(X)[0][0]))
                             
-                        T.append(X)                            
-                        animation_box.append([
-                            (step2_X, _NO_SOLUTIONS_FLAG),
-                            (X, _EXACT_1_SOLUTION_FLAG),
-                        ])
+                        T.append(X)
                         continue
                     else:
                         logger.error('[step5] なんか変. prove_flag: {}'.format(prove_flag))
@@ -382,6 +386,12 @@ class Krawczyk():
                     
                 # step6,7
                 elif flag == _EXACT_1_SOLUTION_FLAG:
+                    animation_box.append([
+                        (step2_X, _NO_SOLUTIONS_FLAG),
+                        (X, _EXACT_1_SOLUTION_FLAG),
+                    ])
+                    print X
+                    X = self.refine(X)
                     if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
                         tmp_min.sup = f(X)[0][0][0].sup
                         logger.info('tmp_min.sup is updated to {}. X: {}, f(X)[0][0]: {}'.format(f(X)[0][0][0].sup, X, f(X)[0][0]))
@@ -390,10 +400,6 @@ class Krawczyk():
                     T.append(X)
                     logger.info('[step 6] exact 1 solution in X:{}'.format(X))
                     logger.info('[step 6] to [step 2]')
-                    animation_box.append([
-                        (step2_X, _NO_SOLUTIONS_FLAG),
-                        (X, _EXACT_1_SOLUTION_FLAG),
-                    ])
                     continue  # to step2
 
         # Tは解が一意に存在するboxのlist
@@ -405,9 +411,10 @@ class Krawczyk():
         pprint(S[:10])
         print('---------- 最終的なU[:10] -----------')
         pprint(U[:10])
-        print('---------- 最終的なT -----------')
-        pprint(T)
-
-        return map(lambda x: self.refine(x), T), S_sizes, T_sizes, U_sizes, animation_box
+        print('---------- 最終的なT[:50] -----------')
+        pprint(T[:50])
+        global_min = min(map(lambda X: f(X).sup[0][0], T))
+        print '最小値の上限値: {}'.format(global_min)
+        return T, S_sizes, T_sizes, U_sizes, animation_box
     
 

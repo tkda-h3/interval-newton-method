@@ -143,6 +143,25 @@ class ivmat(list):
         if scalar:
             mat = mat.to_scalar()
         return mat
+
+    @property
+    def inf(self):
+        """
+        get the midpoint of x
+        """
+        return ivmat(map(lambda x_row:
+                         [x[0].inf for x in x_row],
+                         self))
+        
+    @property
+    def sup(self):
+        """
+        get the midpoint of x
+        """
+        return ivmat(map(lambda x_row:
+                         [x[0].sup for x in x_row],
+                         self))
+        
     
     def abs(self):
         mat = ivmat([[None for col in range(self.shape[1])]
