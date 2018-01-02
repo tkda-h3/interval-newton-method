@@ -44,6 +44,7 @@ class Krawczyk():
                               ip.dot(Y, self.df(X)), Z)
             KX = left + right
             if KX & X == X: # これ以上の改善は見込めない
+                logger.info('これ以上の改善は見込めない。iter: {}, X:{}, KX:{}'.format(i, X, KX))
                 break
             X = KX & X
             if ip.is_empty(X):
@@ -372,7 +373,6 @@ class Krawczyk():
                             (step2_X, _NO_SOLUTIONS_FLAG),
                             (X, _EXACT_1_SOLUTION_FLAG),
                         ])                        
-                        print X
                         X = self.refine(X)
                         if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
                             tmp_min.sup = f(X)[0][0][0].sup
@@ -390,7 +390,6 @@ class Krawczyk():
                         (step2_X, _NO_SOLUTIONS_FLAG),
                         (X, _EXACT_1_SOLUTION_FLAG),
                     ])
-                    print X
                     X = self.refine(X)
                     if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
                         tmp_min.sup = f(X)[0][0][0].sup
