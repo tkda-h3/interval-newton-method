@@ -413,8 +413,9 @@ class Krawczyk():
         pprint(U[:10])
         print('---------- 最終的なT[:50] -----------')
         pprint(T[:50])
-        global_min = min(map(lambda X: f(X).sup[0][0], T))
-        print '最小値の上限値: {}'.format(global_min)
+        if T:
+            global_min = min(map(lambda X: f(X).sup[0][0], T))
+            print '最小値の上限値: {}'.format(global_min)
         return T, S_sizes, T_sizes, U_sizes, animation_box
     
 
