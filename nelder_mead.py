@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
+import datetime
 import numpy as np
 import matplotlib.figure
 import matplotlib.pyplot as plt
 from  matplotlib.tri import Triangulation
-
+import os
 
 class NelderMead():
     """
@@ -18,6 +19,7 @@ class NelderMead():
         self.gamma = gamma
         self.rho = rho
         self.sigma = sigma
+        self.points_history = None
 
     @property
     def x_o(self): # centroid(重心)
@@ -70,23 +72,43 @@ class NelderMead():
         else:
             self.contraction_and_shrink()
         return self.points
-        
 
-
-def save_fig(X,Y,Z, points, filepath, title):
-    fig = plt.figure(figsize=(8,8))
-    im = plt.contour(X, Y, Z, 20, alpha=0.55, zorder=-1, shading='gouraud')
-    plt.colorbar(im)
-    triang=  Triangulation(*points.T)
-    plt.triplot(triang, 'bo-')
-    plt.xlim((-2,2))
-    plt.ylim((-2,2))
-    plt.title(title)
-    fig.savefig(filepath)
-    plt.close(fig)
+    def run(self, times=30):
+        """
+        times: itertion times
+        """
+        self.points_history = [self.points]
+        for i in range(1, 50+1):
+            self.update_points()
+            self.points_history.append(self.points)
+        self.sort_points()
+        minima = self.func(self.points[0])
+        return minima, self.points_history
     
+    def save_fig(self, X, Y, Z, points, filepath, title):
+        fig = plt.figure(figsize=(10,8))
+        im = plt.contour(X, Y, Z, 20, alpha=0.55, zorder=-1, shading='gouraud')
+        plt.colorbar(im)
+        triang=  Triangulation(*points.T)
+        plt.triplot(triang, 'bo-')
+        plt.xlim((np.min(X),np.max(X)))
+        plt.ylim((np.min(Y),np.max(Y)))
+        plt.title(title)
+        fig.savefig(filepath)
+        plt.close(fig)
 
-
+    def save_figs(self, X, Y, Z, points_list):
+        now_string = "{0:%Y%m%d_%H%M%S}".format(datetime.datetime.now())
+        dirpath = 'nelder_mead_image/{}'.format(now_string)
+        os.makedirs(dirpath)
+        print("Start saveing images in {} dirctory.".format(dirpath))
+        for i, points in enumerate(points_list):
+            image_path = os.path.join(dirpath, "anime_{0:0>4}.png".format(i))
+            title = 'cnt:{}'.format(i)
+            self.save_fig(X, Y, Z, points, image_path, title)
+        print("Finish saveing images in {} dirctory.".format(dirpath))
+    
+            
 if __name__ == '__main__':
     from ivmat import ivmat as ip
     from interval import (
