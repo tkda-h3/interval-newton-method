@@ -73,12 +73,12 @@ class NelderMead():
             self.contraction_and_shrink()
         return self.points
 
-    def run(self, times=30):
+    def run(self, times=50):
         """
         times: itertion times
         """
         self.points_history = [self.points]
-        for i in range(1, 50+1):
+        for i in range(1, times+1):
             self.update_points()
             self.points_history.append(self.points)
         self.sort_points()

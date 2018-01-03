@@ -136,6 +136,7 @@ class ivmat(list):
         """
         mat = ivmat([[None for col in range(x.shape[1])]
                      for row in range(x.shape[0])])
+        x = x.to_interval()
         for i in range(mat.shape[0]):
             for j in range(mat.shape[1]):
                 mat[i][j] = x[i][j].midpoint

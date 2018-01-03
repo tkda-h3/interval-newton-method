@@ -372,7 +372,7 @@ class Krawczyk():
                         animation_box.append([
                             (step2_X, _NO_SOLUTIONS_FLAG),
                             (X, _EXACT_1_SOLUTION_FLAG),
-                        ])                        
+                        ])
                         X = self.refine(X)
                         if f(X)[0][0][0].sup < tmp_min.sup: # 最小値の上限を更新
                             tmp_min.sup = f(X)[0][0][0].sup
