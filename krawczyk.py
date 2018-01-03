@@ -43,6 +43,9 @@ class Krawczyk():
             right = ip.dot(ip.eye(self.dim) -
                               ip.dot(Y, self.df(X)), Z)
             KX = left + right
+            if not ip.is_in(KX, X):
+                logger.info('数値計算の限界 iter: {}, X:{}, KX:{}'.format(i, X, KX))
+                break
             if KX & X == X: # これ以上の改善は見込めない
                 logger.info('これ以上の改善は見込めない。iter: {}, X:{}, KX:{}'.format(i, X, KX))
                 break

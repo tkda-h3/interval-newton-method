@@ -19,7 +19,6 @@ class NelderMead():
         self.gamma = gamma
         self.rho = rho
         self.sigma = sigma
-        self.points_history = None
 
     @property
     def x_o(self): # centroid(重心)
@@ -77,17 +76,17 @@ class NelderMead():
         """
         times: itertion times
         """
-        self.points_history = [self.points]
+        points_history = [self.points]
         for i in range(1, times+1):
             self.update_points()
-            self.points_history.append(self.points)
+            points_history.append(self.points)
         self.sort_points()
         minima = self.func(self.points[0])
-        return minima, self.points_history
+        return minima, points_history
     
     def save_fig(self, X, Y, Z, points, filepath, title):
         fig = plt.figure(figsize=(10,8))
-        im = plt.contour(X, Y, Z, 20, alpha=0.55, zorder=-1, shading='gouraud')
+        im = plt.contour(X, Y, Z, 20, alpha=0.5, zorder=-1, shading='gouraud')
         plt.colorbar(im)
         triang=  Triangulation(*points.T)
         plt.triplot(triang, 'bo-')
@@ -97,7 +96,7 @@ class NelderMead():
         fig.savefig(filepath)
         plt.close(fig)
 
-    def save_figs(self, X, Y, Z, points_list):
+    def save_figs(self, X, Y, Z, points_list):        
         now_string = "{0:%Y%m%d_%H%M%S}".format(datetime.datetime.now())
         dirpath = 'nelder_mead_image/{}'.format(now_string)
         os.makedirs(dirpath)
@@ -107,7 +106,37 @@ class NelderMead():
             title = 'cnt:{}'.format(i)
             self.save_fig(X, Y, Z, points, image_path, title)
         print("Finish saveing images in {} dirctory.".format(dirpath))
-    
+
+    def save_multi_points_fig(self, X, Y, Z, points_list, filepath, title):
+        
+        fig = plt.figure(figsize=(10,8))
+        im = plt.contour(X, Y, Z, 20, alpha=0.5, zorder=-1, shading='gouraud')
+        plt.colorbar(im)
+        for points in points_list:
+            triang=  Triangulation(*points.T)
+            plt.triplot(triang, 'bo-')
+        plt.xlim((np.min(X),np.max(X)))
+        plt.ylim((np.min(Y),np.max(Y)))
+        plt.title(title)
+        fig.savefig(filepath)
+        plt.close(fig)
+        
+    def save_multi_points_figs(self, X, Y, Z, points_histories):
+        """
+        points_histories: type is np.array. shape is equivalent to (multi start number, itertion times, dimention + 1, dimention).
+        """
+        now_string = "{0:%Y%m%d_%H%M%S}".format(datetime.datetime.now())
+        dirpath = 'nelder_mead_image/{}'.format(now_string)
+        os.makedirs(dirpath)
+        print("Start saveing images in {} dirctory.".format(dirpath))
+        for i in range(points_histories.shape[1]):
+            image_path = os.path.join(dirpath, "anime_{0:0>4}.png".format(i))
+            title = 'cnt:{}'.format(i)
+            points_list = points_histories[:, i, :, :]
+            self.save_multi_points_fig(X, Y, Z, points_list, image_path, title)
+        print("Finish saveing images in {} dirctory.".format(dirpath))
+
+
             
 if __name__ == '__main__':
     from ivmat import ivmat as ip

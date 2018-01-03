@@ -117,7 +117,7 @@ def visualize_optimization_log(krawczyk_obj, f, animation_box, skip=5, title_pre
         if i != len(animation_box) - 1: #最後以外
             if i % skip:
                 continue
-        fig = plt.figure(figsize=(8,6))
+        fig = plt.figure(figsize=(10,8))
         plt.title(title_prefix + ' count: {}'.format(i))
         plt.xlim(x1_lim)
         plt.ylim(x2_lim)
@@ -133,7 +133,7 @@ def visualize_optimization_log(krawczyk_obj, f, animation_box, skip=5, title_pre
                 ax.add_patch(rect)
 
         # 最後にcontour mapを薄く重ねる
-        im = plt.contour(X, Y, Z, alpha=0.8, zorder=100, shading='gouraud')
+        im = plt.contour(X, Y, Z, 20, alpha=0.5, zorder=100, shading='gouraud')
         fig.colorbar(im)
         image_path = os.path.join(dirpath, "anime_{0:0>4}.png".format(i))
         fig.savefig(image_path)
