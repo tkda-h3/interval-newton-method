@@ -236,6 +236,7 @@ class Krawczyk():
                         ])
                         continue  # to step2
                     elif prove_flag == _EXACT_1_SOLUTION_FLAG:
+                        X = self.refine(X)
                         T.append(X)
                         animation_box.append([
                             (step2_X, _NO_SOLUTIONS_FLAG),
@@ -249,6 +250,7 @@ class Krawczyk():
                 # step6,7
                 elif flag == _EXACT_1_SOLUTION_FLAG:
                     # step6
+                    X = self.refine(X)
                     T.append(X)
                     logger.info('[step 6] exact 1 solution in X:{}'.format(X))
                     logger.info('[step 6] to [step 2]')
@@ -417,7 +419,9 @@ class Krawczyk():
         pprint(T[:50])
         if T:
             global_min = min(map(lambda X: f(X).sup[0][0], T))
-            print '最小値の上限値: {}'.format(global_min)
+            X_of_global_min = min(T, key=lambda X: f(X).sup[0][0])
+            print '最小値の上限値: {}, 該当区間X: {}'.format(global_min, X_of_global_min)
         return T, S_sizes, T_sizes, U_sizes, animation_box
     
+
 

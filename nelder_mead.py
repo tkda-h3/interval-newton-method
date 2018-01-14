@@ -108,7 +108,9 @@ class NelderMead():
         print("Finish saveing images in {} dirctory.".format(dirpath))
 
     def save_multi_points_fig(self, X, Y, Z, points_list, filepath, title):
-        
+        """
+        複数の三角形を１つの画像に保存する
+        """
         fig = plt.figure(figsize=(10,8))
         im = plt.contour(X, Y, Z, 20, alpha=0.5, zorder=-1, shading='gouraud')
         plt.colorbar(im)
