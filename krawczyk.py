@@ -181,14 +181,16 @@ class Krawczyk():
                 break
 
             logger.info('cnt:{}, len(S):{}, len(T):{}, len(U):{}'.format(cnt, len(S), len(T), len(U)))
-
+            
             # step2
             logger.info('[step 2]')
             if not S:  # S is empty
                 break
+            
             step2_X = X = S.pop(0)
             logger.info('[step 2] S pop X. X:{}'.format(X))
-
+            
+            
             if X.max_width() < max_width:
                 # 限界の精度を決める
                 U.append(X)
@@ -281,6 +283,13 @@ class Krawczyk():
           f: 最小化したい関数
           tmp_min_sup: 最小値の上限値（事前にnelder meadなどで求めた局所最適値を使うと良い）
         """
+        def get_max_width(X_list):
+            """
+            X_list: [X1, X2, ...]
+               - X1, X2, ... : type is ivmat. shape is (n ,1). 
+            """
+            return max(map(lambda x: x.max_width(), S))
+        
         class TmpMin():
             def __init__(self, tmp_min_sup):
                 self.sup = tmp_min_sup
@@ -292,9 +301,10 @@ class Krawczyk():
         T = []
         U = []  # これ以上は浮動小数点演算の限界
         animation_box = []  # アニメーション作成のために過程を保存
+        max_width_time_series_list = []
         tmp_min = TmpMin(tmp_min_sup)
         logger.info('[step 1] init_X:{}, len(S):{}, len(T):{}, len(U)'.format(init_X, len(S), len(T), len(U)))
-
+        
         cnt = 0
         prove_trace_flag = False
         S_sizes = []
@@ -308,14 +318,17 @@ class Krawczyk():
             U_sizes.append(len(U))
             if cnt > cnt_max:
                 break
-
             logger.info('cnt:{}, tmp_min.sup:{}, len(S):{}, len(T):{}, len(U):{}'\
                         .format(cnt, tmp_min.sup, len(S), len(T), len(U)))
 
             # step2
             logger.info('[step 2]')
             if not S:  # S is empty
+                max_width_time_series_list.append(0) # 最後の区間幅は0
                 break
+
+            max_width_time_series_list.append(get_max_width(S))
+            logger.info('max_width_of_S,{}'.format(get_max_width(S)))
             step2_X = X = S.pop(0)
             logger.info('[step 2] S pop X. X:{}'.format(X))
 
@@ -421,7 +434,7 @@ class Krawczyk():
             global_min = min(map(lambda X: f(X).sup[0][0], T))
             X_of_global_min = min(T, key=lambda X: f(X).sup[0][0])
             print '最小値の上限値: {}, 該当区間X: {}'.format(global_min, X_of_global_min)
-        return T, S_sizes, T_sizes, U_sizes, animation_box
+        return T, S_sizes, T_sizes, U_sizes, animation_box, max_width_time_series_list
     
 
 
